@@ -23,18 +23,18 @@ public class AppendMessageResult {
     // Return code
     private AppendMessageStatus status;
     // Where to start writing
-    private long wroteOffset;
+    private long wroteOffset;//消息的物理偏移量
     // Write Bytes
     private int wroteBytes;
     // Message ID
-    private String msgId;
+    private String msgId;//消息ID
     // Message storage timestamp
-    private long storeTimestamp;
+    private long storeTimestamp;//消息存储时间戳
     // Consume queue's offset(step by one)
-    private long logicsOffset;
-    private long pagecacheRT = 0;
+    private long logicsOffset;//消息消费队列逻辑偏移量，类似于数组下标
+    private long pagecacheRT = 0;//当前未使用
 
-    private int msgNum = 1;
+    private int msgNum = 1;//消息条数，批量消息发送时消息条数
 
     public AppendMessageResult(AppendMessageStatus status) {
         this(status, 0, 0, "", 0, 0, 0);

@@ -196,12 +196,18 @@ public class MappedFile extends ReferenceResource {
         return appendMessagesInner(messageExtBatch, cb);
     }
 
+    /**
+     * 将消息追加到MapperFile中
+     * @param messageExt
+     * @param cb
+     * @return
+     */
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
-
+        //首先获取MappedFile当前写指针
         int currentPos = this.wrotePosition.get();
-
+        //currentPos 小于文件大小，通过slice（）方法创建一个与MappedFile共享的内存区，并设置position为当前指针
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
@@ -217,6 +223,7 @@ public class MappedFile extends ReferenceResource {
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
+        //currentPos大于等于文件大小，文件已经写满
         log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }

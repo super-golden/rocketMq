@@ -355,11 +355,13 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
+        //如果当前Broker停止工作
         if (this.shutdown) {
             log.warn("message store has shutdown, so putMessage is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
+        //如果当前Broker为SLAVE角色
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -368,7 +370,7 @@ public class DefaultMessageStore implements MessageStore {
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
-
+        //如果当前Rocket不支持写入
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -379,12 +381,12 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.printTimes.set(0);
         }
-
+        //如果消息主题长度超过127个字节
         if (msg.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + msg.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
-
+        //如果消息属性长度超过32767个字符
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
