@@ -89,6 +89,16 @@ public class IndexFile {
         return this.mappedFile.destroy(intervalForcibly);
     }
 
+    /**
+     *
+     * @param key 消息索引
+     * @param phyOffset  消息物理偏移量
+     * @param storeTimestamp 消息存储时间
+     * @return
+     * 如果当前已使用条目大于等于允许最大条目数时，则返回false，表示当前索引文件已写满，
+     *
+     */
+
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key);
@@ -101,11 +111,14 @@ public class IndexFile {
 
                 // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
                 // false);
+                //absSlotPos ：hashcode 对应的hash槽的物理地址
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
+                //读取hash槽中存储的数据，如果hash槽存储的数据小于0或大于当前索引文件中的索引条目个数，则将sloatValue 设置为0
+
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
                 }
-
+                //计算待存储消息的时间戳和第一条消息时间戳的差值，并转换成秒
                 long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
 
                 timeDiff = timeDiff / 1000;
@@ -117,7 +130,10 @@ public class IndexFile {
                 } else if (timeDiff < 0) {
                     timeDiff = 0;
                 }
-
+                /*
+                   将条目消息存储在IndexFile中
+                 */
+                //计算新添加的条目的起始物理偏移量，等于头部字节长度+ hash槽数量 * 单个hash槽大小（4个字节）+ 当前Index条目个数* 单个Index条目大小（20字节）
                 int absIndexPos =
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
@@ -186,6 +202,15 @@ public class IndexFile {
         return result;
     }
 
+    /**
+     * 根据索引key查找消息的实现方法
+     * @param phyOffsets  查找到的消息物理偏移量
+     * @param key   索引key
+     * @param maxNum  本次查找最大消息条数
+     * @param begin    开始时间戳
+     * @param end     结束时间戳
+     * @param lock
+     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
         final long begin, final long end, boolean lock) {
         if (this.mappedFile.hold()) {

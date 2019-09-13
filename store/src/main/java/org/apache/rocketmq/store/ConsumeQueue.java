@@ -151,6 +151,11 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 根据消息存储时间来查找具体实现
+     * @param timestamp
+     * @return
+     */
     public long getOffsetInQueueByTime(final long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
@@ -482,7 +487,13 @@ public class ConsumeQueue {
             mappedFile.appendMessage(byteBuffer.array());
         }
     }
-
+    /**
+     * 根据startIndex 获取消息消费队列条目
+     * 首先startIndex * 20 得到在consumequeue 中的物理偏移量，如果该offSet小于minLogicOffset，则返回null，说明该消息已被删除；
+     * 如果大于minLogicOffset，则根据偏移量定位到具体的物理文件，然后通过offset与物理文件大小取模取在该文件的偏移量，从而从偏移量开始连续读取20个字节即可。
+     * @param pos
+     * @return
+     */
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
@@ -518,6 +529,11 @@ public class ConsumeQueue {
         this.minLogicOffset = minLogicOffset;
     }
 
+    /**
+     * 根据当前偏移量获取下一个文件的起始偏移量。
+     * @param index 当前偏移量
+     * @return
+     */
     public long rollNextFile(final long index) {
         int mappedFileSize = this.mappedFileSize;
         int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;
