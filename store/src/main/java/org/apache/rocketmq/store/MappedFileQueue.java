@@ -35,16 +35,16 @@ public class MappedFileQueue {
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
-    private final String storePath;
+    private final String storePath;//存储目录
 
-    private final int mappedFileSize;
+    private final int mappedFileSize;//单个文件的存储大小
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();//MappedFile文件集合
 
-    private final AllocateMappedFileService allocateMappedFileService;
+    private final AllocateMappedFileService allocateMappedFileService;//创建MappedFile服务类
 
-    private long flushedWhere = 0;
-    private long committedWhere = 0;
+    private long flushedWhere = 0;//当前刷盘指针，表示该指针之前的所有数据全部持久化到磁盘
+    private long committedWhere = 0;//当前数据提交指针，内存中ByteBuffer当前的写指针，该值大于等于flushedWhere
 
     private volatile long storeTimestamp = 0;
 
@@ -73,6 +73,14 @@ public class MappedFileQueue {
             }
         }
     }
+
+    /**
+     *
+     * 根据消息存储时间戳来查找MappedFile。
+     * 从MappedFile列表中第一个文件开始查找，找到第一个最后更新时间大于待查找时间戳的文件，如果不存在，则返回最后一个MappedFile文件
+     * @param timestamp 待查找文件的时间戳
+     * @return
+     */
 
     public MappedFile getMappedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMappedFiles(0);
@@ -285,6 +293,10 @@ public class MappedFileQueue {
         return true;
     }
 
+    /**
+     * 获取存储文件的最小偏移量，不是直接返回0。
+     * @return
+     */
     public long getMinOffset() {
 
         if (!this.mappedFiles.isEmpty()) {
@@ -298,7 +310,11 @@ public class MappedFileQueue {
         }
         return -1;
     }
-
+    /**
+     * 获取存储文件的最大偏移量，不是直接返回0。
+     * 返回最后一个MappedFile文件的fileFromOffset加上MappedFile文件当前的写指针
+     * @return
+     */
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
@@ -307,6 +323,10 @@ public class MappedFileQueue {
         return 0;
     }
 
+    /**
+     * 返回当前文件的写指针。
+     * @return
+     */
     public long getMaxWrotePosition() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
@@ -454,7 +474,7 @@ public class MappedFileQueue {
 
     /**
      * Finds a mapped file by offset.
-     *
+     * 根据消息偏移量offset查找MappedFile。
      * @param offset Offset.
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).

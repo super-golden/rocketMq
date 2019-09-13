@@ -39,8 +39,8 @@ public class ConsumeQueue {
 
     private final String storePath;
     private final int mappedFileSize;
-    private long maxPhysicOffset = -1;
-    private volatile long minLogicOffset = 0;
+    private long maxPhysicOffset = -1;//最大物理偏移量
+    private volatile long minLogicOffset = 0;//最小逻辑偏移量
     private ConsumeQueueExt consumeQueueExt = null;
 
     public ConsumeQueue(

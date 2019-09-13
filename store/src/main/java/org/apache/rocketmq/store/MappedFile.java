@@ -41,29 +41,32 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
+/**
+ * MappedFile 是RocketMq内存映射文件的具体实现
+ */
 public class MappedFile extends ReferenceResource {
-    public static final int OS_PAGE_SIZE = 1024 * 4;
+    public static final int OS_PAGE_SIZE = 1024 * 4;//操作系统每页大小，默认4k
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
+    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);//当前JVM实例中MappedFile虚拟内存
 
-    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
-    protected final AtomicInteger wrotePosition = new AtomicInteger(0);
-    protected final AtomicInteger committedPosition = new AtomicInteger(0);
-    private final AtomicInteger flushedPosition = new AtomicInteger(0);
-    protected int fileSize;
-    protected FileChannel fileChannel;
+    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);//当前JVM实例中MappedFile对象个数
+    protected final AtomicInteger wrotePosition = new AtomicInteger(0);//当前文件的写指针，从0开始（内存映射文件中的写指针）
+    protected final AtomicInteger committedPosition = new AtomicInteger(0);//当前文件的提交指针，如果开启TransientStorePoolEnable，则数据会存储到TransientStorePool中，然后提交到内存映射ByteBuffer中，再刷写到磁盘中
+    private final AtomicInteger flushedPosition = new AtomicInteger(0);//刷写磁盘指针，该指针之前的数据持久化到磁盘中
+    protected int fileSize;//文件大小
+    protected FileChannel fileChannel;//文件通道
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
      */
-    protected ByteBuffer writeBuffer = null;
-    protected TransientStorePool transientStorePool = null;
-    private String fileName;
-    private long fileFromOffset;
-    private File file;
-    private MappedByteBuffer mappedByteBuffer;
-    private volatile long storeTimestamp = 0;
-    private boolean firstCreateInQueue = false;
+    protected ByteBuffer writeBuffer = null;//堆外内存ByteBuffer，如果不为空，数据首先将存储在该Buffer中，然后提交到MappedFile对应的内存映射Buffer。
+    protected TransientStorePool transientStorePool = null;//堆外内存池，该内存池中的内存会提供内存锁定机制。TransientStorePoolEnable为true时，启用。
+    private String fileName;//文件名称
+    private long fileFromOffset;//该文件的初始偏移量
+    private File file;//物理文件
+    private MappedByteBuffer mappedByteBuffer;//物理文件对应的内存映射Buffer
+    private volatile long storeTimestamp = 0; //文件最后一次内容写入时间
+    private boolean firstCreateInQueue = false;//是否是MappedFileQueue队列中第一个文件
 
     public MappedFile() {
     }

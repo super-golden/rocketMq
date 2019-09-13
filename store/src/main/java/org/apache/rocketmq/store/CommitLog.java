@@ -1235,12 +1235,12 @@ public class CommitLog {
             switch (tranType) {
                 // Prepared and Rollback message is not consumed, will not enter the
                 // consumer queuec
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE://4
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE://12
                     queueOffset = 0L;
                     break;
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                case MessageSysFlag.TRANSACTION_NOT_TYPE://0
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE://8
                 default:
                     break;
             }
