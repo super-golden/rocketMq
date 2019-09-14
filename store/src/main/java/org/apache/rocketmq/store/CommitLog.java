@@ -416,6 +416,7 @@ public class CommitLog {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Looking beginning to recover from which file
+            //从最后一个文件开始
             int index = mappedFiles.size() - 1;
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
@@ -519,7 +520,9 @@ public class CommitLog {
         }
 
         /*
-          对比文件
+          对比文件第一条消息的时间戳与检测点，文件第一条消息的时间戳小于文件检测点，说明该文件部分消息是可靠的，则从该文件开始恢复
+          。文件检测点中保存了Commitlog文件、消息消费队列、索引文件的文件刷盘点，RocketMQ默认选择消息文件与消息队列这两个文件的刷盘点
+          中较小值与文件第一条消息的时间戳做对比，如果messageIndexRnable为ture，表示索引文件的刷盘点也参与运算。
          */
         if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
             && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {

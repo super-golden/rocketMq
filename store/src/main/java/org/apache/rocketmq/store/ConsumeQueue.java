@@ -565,6 +565,9 @@ public class ConsumeQueue {
         this.maxPhysicOffset = maxPhysicOffset;
     }
 
+    /*
+     * 重置ConsumeQueue的maxPhysicOffset和minLogicOffset，然后调用MappedFileQueue的destory方法将消息消费队列目录下的所有文件全部删除。
+     */
     public void destroy() {
         this.maxPhysicOffset = -1;
         this.minLogicOffset = 0;
