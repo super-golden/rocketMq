@@ -195,12 +195,15 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.commitLog.load();
 
             // load Consume Queue
+            //加载消息消费队列
             result = result && this.loadConsumeQueue();
 
             if (result) {
+                //加载存储检测点
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
 
+                //加载索引文件
                 this.indexService.load(lastExitOK);
 
                 this.recover(lastExitOK);
@@ -1300,6 +1303,11 @@ public class DefaultMessageStore implements MessageStore {
         return file.exists();
     }
 
+    /**
+     * 遍历消息消费队列根目录，获取该Broker存储的所有主题，然后遍历每个主题目录，获取该主题下的所有的消息消费队列，然后分别加载每个消息消费队列
+     * 下的文件，构建ConsumeQueue对象，主要初始化ConsumeQueue的topic、queueId、storePath、mappedFileSize属性。
+     * @return
+     */
     private boolean loadConsumeQueue() {
         File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
         File[] fileTopicList = dirLogic.listFiles();
@@ -1337,6 +1345,10 @@ public class DefaultMessageStore implements MessageStore {
         return true;
     }
 
+    /**
+     * 根据Broker是否是正常停止执行不同的恢复策略
+     * @param lastExitOK
+     */
     private void recover(final boolean lastExitOK) {
         long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
 
@@ -1382,6 +1394,10 @@ public class DefaultMessageStore implements MessageStore {
         return maxPhysicOffset;
     }
 
+    /**
+     * 恢复ConsumeQueue文件后，将在CommitLog实例中保存每个消息消费队列当前的逻辑偏移量。
+     * 这也是消息中不仅存储主题、消息队列Id还存储了消息队列偏移量的关键所在
+     */
     public void recoverTopicQueueTable() {
         HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<String, Long>(1024);
         long minPhyOffset = this.commitLog.getMinOffset();
