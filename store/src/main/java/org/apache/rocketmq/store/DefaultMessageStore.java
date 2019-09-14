@@ -218,6 +218,7 @@ public class DefaultMessageStore implements MessageStore {
      */
     public void start() throws Exception {
 
+        //获取文件的锁
         lock = lockFile.getChannel().tryLock(0, 1, false);
         if (lock == null || lock.isShared() || !lock.isValid()) {
             throw new RuntimeException("Lock failed,MQ already started");
@@ -1427,6 +1428,12 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 根据消息主题与队列ID，先获取对应的ConumeQueue文件，其逻辑比较简单，
+     * 因为每一个消息主题对应一个消息消费队列目录，然后主题下每一个消息队列对应一个文件夹，然后
+     * 取出该文件加最后的ConsumeQueue文件即可
+     * @param dispatchRequest
+     */
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
         ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
         cq.putMessagePositionInfoWrapper(dispatchRequest);
