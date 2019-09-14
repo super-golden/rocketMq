@@ -178,9 +178,15 @@ public class DefaultMessageStore implements MessageStore {
         boolean result = true;
 
         try {
+            /*
+              判断上一次退出是否正常。
+              其实现机制是Broker在启动时创建${ROCKET_HOME}/store/abort文件，在退出时通过注册JVM钩子函数删除abort文件。
+              如果下一次启动时存在abort文件。说明Broker是异常退出的，Commitlog与Consumequeue数据可能不一致，需要修复。
+             */
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
+            //加载延迟队列，RocketMQ定时消息相关
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
@@ -1507,6 +1513,10 @@ public class DefaultMessageStore implements MessageStore {
 
     class CommitLogDispatcherBuildIndex implements CommitLogDispatcher {
 
+        /**
+         * 如果messageIndexEnable设置为ture，则调用IndexService#buildIndex构建Hash索引，否则忽略本次转发任务
+         * @param request
+         */
         @Override
         public void dispatch(DispatchRequest request) {
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
