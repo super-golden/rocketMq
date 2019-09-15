@@ -688,6 +688,7 @@ public class CommitLog {
         }
         // Asynchronous flush
         else {
+            //未开启TransientStorePoolEnable机制
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                 flushCommitLogService.wakeup();
             } else {
@@ -1068,9 +1069,9 @@ public class CommitLog {
     }
 
     public static class GroupCommitRequest {
-        private final long nextOffset;
-        private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        private volatile boolean flushOK = false;
+        private final long nextOffset;//刷盘点偏移量
+        private final CountDownLatch countDownLatch = new CountDownLatch(1);//倒计数锁存器
+        private volatile boolean flushOK = false;//刷盘结果，初始值为false
 
         public GroupCommitRequest(long nextOffset) {
             this.nextOffset = nextOffset;
@@ -1100,8 +1101,8 @@ public class CommitLog {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
-        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
-        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
+        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();//同步刷盘任务暂停容器
+        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();//GroupCommitService每次处理的request容器
 
         public synchronized void putRequest(final GroupCommitRequest request) {
             synchronized (this.requestsWrite) {
@@ -1112,6 +1113,10 @@ public class CommitLog {
             }
         }
 
+        /**
+         * 由于避免同步刷盘消息任务与其他消息生产者提交任务直接的锁竞争，GroupCommitService提供读容器和写容器
+         * ，这两个容器每执行完一次任务后，交互，继续消费任务。
+         */
         private void swapRequests() {
             List<GroupCommitRequest> tmp = this.requestsWrite;
             this.requestsWrite = this.requestsRead;

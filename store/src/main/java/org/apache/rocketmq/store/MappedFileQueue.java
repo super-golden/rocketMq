@@ -360,6 +360,14 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 执行文件销毁与删除
+     * @param expiredTime
+     * @param deleteFilesInterval
+     * @param intervalForcibly
+     * @param cleanImmediately
+     * @return
+     */
     public int deleteExpiredFileByTime(final long expiredTime,
         final int deleteFilesInterval,
         final long intervalForcibly,
@@ -369,14 +377,17 @@ public class MappedFileQueue {
         if (null == mfs)
             return 0;
 
-        int mfsLength = mfs.length - 1;
+
+        int mfsLength = mfs.length - 1;//倒数第二个文件
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<MappedFile>();
         if (null != mfs) {
             for (int i = 0; i < mfsLength; i++) {
                 MappedFile mappedFile = (MappedFile) mfs[i];
+                //计算文件的最大存活时间（=文件最后一次更新时间+文件存活时间（默认72小时））
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                    //清除MappedFile占有的相关资源，如果执行成功，将文件加入到待删除文件列表中，然后统一执行File#delete方法将文件从物理磁盘中删除
                     if (mappedFile.destroy(intervalForcibly)) {
                         files.add(mappedFile);
                         deleteCount++;
